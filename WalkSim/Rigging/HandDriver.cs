@@ -102,8 +102,8 @@ namespace WalkSim.WalkSim.Rigging
                 : GorillaTagger.Instance.offlineVRRig.rightHand;
             body = Rig.Instance.body;
             controller = initIsLeft
-                ? GTPlayer.Instance.leftControllerTransform
-                : GTPlayer.Instance.rightControllerTransform;
+                ? GTPlayer.Instance.GetControllerTransform(true)
+                : GTPlayer.Instance.GetControllerTransform(false);
             handMap = initIsLeft
                 ? GorillaTagger.Instance.offlineVRRig.leftHand
                 : GorillaTagger.Instance.offlineVRRig.rightHand;

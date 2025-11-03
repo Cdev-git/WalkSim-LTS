@@ -6,6 +6,6 @@
 
         public const string Name = "WalkSimulator";
 
-        public const string Version = "2.0.1";
+        public const string Version = "2.0.3";
     }
 }

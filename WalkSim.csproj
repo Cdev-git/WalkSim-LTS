@@ -15,7 +15,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <None Remove="Resources\WalkSimulator"/>
+        <None Remove="Resources\WalkSimulator" />
     </ItemGroup>
 
     <!-- AssemblyPublicizer usage inspired from GorillaShirts -->
@@ -562,6 +562,6 @@
     </ItemGroup>
 
     <ItemGroup>
-        <EmbeddedResource Include="Resources\WalkSimulator"/>
+        <EmbeddedResource Include="Resources\WalkSimulator" />
     </ItemGroup>
 </Project>

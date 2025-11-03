@@ -11,7 +11,7 @@ using WalkSim.WalkSim.Tools;
 
 namespace WalkSim.WalkSim.Plugin
 {
-    [BepInPlugin("com.goldentrophy.gorillatag.walksim", "WalkSimulator", "2.0.2")]
+    [BepInPlugin(PluginInfo.GUID, PluginInfo.Name, PluginInfo.Version)]
     public class Plugin : BaseUnityPlugin
     {
         public static Plugin instance;
@@ -110,6 +110,7 @@ namespace WalkSim.WalkSim.Plugin
         private void OnGameInitialized(object sender, EventArgs e)
         {
             Enabled = true;
+            Tools.AssetUtils.Initialize();
         }
     }
 }
