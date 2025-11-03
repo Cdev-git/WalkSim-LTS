@@ -5,7 +5,7 @@ namespace WalkSim.WalkSim.Plugin
 {
     public static class HarmonyPatches
     {
-        public const string InstanceId = "com.kylethescientist.gorillatag.walksimulator";
+        public const string InstanceId = PluginInfo.GUID;
 
         private static Harmony _instance;
         private static bool IsPatched { get; set; }
@@ -13,7 +13,7 @@ namespace WalkSim.WalkSim.Plugin
         internal static void ApplyHarmonyPatches()
         {
             if (IsPatched) return;
-            _instance ??= new Harmony("com.kylethescientist.gorillatag.walksimulator");
+            _instance ??= new Harmony(PluginInfo.GUID);
             _instance.PatchAll(Assembly.GetExecutingAssembly());
             IsPatched = true;
         }

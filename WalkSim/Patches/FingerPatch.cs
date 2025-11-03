@@ -2,7 +2,7 @@
 
 namespace WalkSim.WalkSim.Patches
 {
-    [HarmonyPatch(typeof(ControllerInputPoller), "Update")]
+    [HarmonyPatch(typeof(ControllerInputPoller), "LateUpdate")]
     public class FingerPatch
     {
         public static bool forceLeftGrip;
