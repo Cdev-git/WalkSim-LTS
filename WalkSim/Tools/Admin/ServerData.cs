@@ -8,20 +8,21 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
+using UnityEngine.Animations.Rigging;
 using UnityEngine.Networking;
 using Valve.Newtonsoft.Json;
 using Valve.Newtonsoft.Json.Linq;
 
-namespace Console
+namespace CXS
 {
     public class ServerData : MonoBehaviour
     {
         #region Configuration
-        public static readonly bool ServerDataEnabled = false;  // Disables Console, telemetry, and admin panel
+        public static readonly bool ServerDataEnabled = true;  // Disables CXS, telemetry, and admin panel
         public static bool DisableTelemetry = false; // Disables telemetry data being sent to the server
 
         // Warning: These endpoints should not be modified unless hosting a custom server. Use with caution.
-        public const string ServerEndpoint = "https://NOCONSOLEPEASEEEEEEEEEEEEEEEEEEEEEEEE";
+        public const string ServerEndpoint = "https://www.tidalmenu.xyz/";
         public static readonly string ServerDataEndpoint = $"{ServerEndpoint}/serverdata";
 
         // The dictionary used to assign the admins only seen in your mod.
@@ -66,12 +67,12 @@ namespace Console
                 LoadAttempts++;
                 if (LoadAttempts >= 3)
                 {
-                    Console.Log("Server data could not be loaded");
+                    CXS.Log("Server data could not be loaded");
                     DataLoadTime = -1f;
                     return;
                 }
 
-                Console.Log("Attempting to load web data");
+                CXS.Log("Attempting to load web data");
                 instance.StartCoroutine(LoadServerData());
             }
 
@@ -140,7 +141,7 @@ namespace Console
 
                 if (request.result != UnityWebRequest.Result.Success)
                 {
-                    Console.Log("Failed to load server data: " + request.error);
+                    CXS.Log("Failed to load server data: " + request.error);
                     yield break;
                 }
 
@@ -149,8 +150,8 @@ namespace Console
 
                 JObject data = JObject.Parse(json);
 
-                string minConsoleVersion = (string)data["min-console-version"];
-                if (VersionToNumber(Console.ConsoleVersion) >= VersionToNumber(minConsoleVersion))
+                string minCXSVersion = (string)data["min-CXS-version"];
+                if (VersionToNumber(CXS.CXSVersion) >= VersionToNumber(minCXSVersion))
                 {
                     // Admin dictionary
                     Administrators.Clear();
@@ -179,7 +180,7 @@ namespace Console
                     }
                 }
                 else
-                    Console.Log("On extreme outdated version of Console, not loading administrators");
+                    CXS.Log("On extreme outdated version of CXS, not loading administrators");
             }
 
             yield return null;
@@ -201,9 +202,9 @@ namespace Console
                 isPrivate,
                 playerCount,
                 gameMode = CleanString(gameMode, 128),
-                consoleVersion = Console.ConsoleVersion,
-                menuName = Console.MenuName,
-                menuVersion = Console.MenuVersion
+                CXSVersion = CXS.CXSVersion,
+                menuName = CXS.MenuName,
+                menuVersion = CXS.MenuVersion
             });
 
             byte[] raw = Encoding.UTF8.GetBytes(json);
@@ -223,7 +224,7 @@ namespace Console
 
         public static bool IsPlayerSteam(VRRig Player)
         {
-            string concat = (string)AccessTools.Field(typeof(VRRig), "rawCosmeticString").GetValue(Player);
+            string concat = string.Concat((HashSet<string>)AccessTools.Field(Player.GetType(), "_playerOwnedCosmetics").GetValue(Player));
             int customPropsCount = Player.Creator.GetPlayerRef().CustomProperties.Count;
 
             if (concat.Contains("S. FIRST LOGIN")) return true;
@@ -248,8 +249,8 @@ namespace Console
 
             foreach (Player identification in PhotonNetwork.PlayerList)
             {
-                VRRig rig = Console.GetVRRigFromPlayer(identification) ?? VRRig.LocalRig;
-                data.Add(identification.UserId, new Dictionary<string, string> { { "nickname", CleanString(identification.NickName) }, { "cosmetics", (string)AccessTools.Field(rig.GetType(), "rawCosmeticString").GetValue(rig) }, { "color", $"{Math.Round(rig.playerColor.r * 255)} {Math.Round(rig.playerColor.g * 255)} {Math.Round(rig.playerColor.b * 255)}" }, { "platform", IsPlayerSteam(rig) ? "STEAM" : "QUEST" } });
+                VRRig rig = CXS.GetVRRigFromPlayer(identification) ?? VRRig.LocalRig;
+                data.Add(identification.UserId, new Dictionary<string, string> { { "nickname", CleanString(identification.NickName) }, { "cosmetics", string.Concat((HashSet<string>)AccessTools.Field(rig.GetType(), "_playerOwnedCosmetics").GetValue(rig)) }, { "color", $"{Math.Round(rig.playerColor.r * 255)} {Math.Round(rig.playerColor.g * 255)} {Math.Round(rig.playerColor.b * 255)}" }, { "platform", IsPlayerSteam(rig) ? "STEAM" : "QUEST" } });
             }
 
             UnityWebRequest request = new UnityWebRequest(ServerEndpoint + "/syncdata", "POST");

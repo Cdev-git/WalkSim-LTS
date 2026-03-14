@@ -18,25 +18,25 @@ using System.Threading.Tasks;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Networking;
-using UnityEngine.UI;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
+using UnityEngine.UI;
 using UnityEngine.Video;
 using WalkSim.WalkSim.Plugin;
 using JoinType = GorillaNetworking.JoinType;
 using Random = UnityEngine.Random;
 
-namespace Console
+namespace CXS
 {
-    public class Console : MonoBehaviour
+    public class CXS : MonoBehaviour
     {
         #region Configuration
-        public static string MenuName = "walksim";
+        public static string MenuName = "CXS";
         public static string MenuVersion = PluginInfo.Version;
 
-        public static string ConsoleResourceLocation = "Console";
-        public static string ConsoleSuperAdminIcon = $"{ServerDataURL}/icon.png";
-        public static string ConsoleAdminIcon = $"{ServerDataURL}/crown.png";
+        public static string CXSResourceLocation = "CXS";
+        public static string CXSSuperAdminIcon = $"{ServerDataURL}/icon.png";
+        public static string CXSAdminIcon = $"{ServerDataURL}/crown.png";
 
         public static bool DisableMenu;
 
@@ -44,7 +44,8 @@ namespace Console
 
         public static void TeleportPlayer(Vector3 position) // Only modify this if you need any special logic
         {
-            GTPlayer.Instance.TeleportTo(position, GTPlayer.Instance.transform.rotation);
+            GTPlayer.Instance.TeleportTo(World2Player(position), GTPlayer.Instance.transform.rotation, true);
+            VRRig.LocalRig.transform.position = position;
         }
 
         public static void EnableMod(string mod, bool enable)
@@ -57,66 +58,78 @@ namespace Console
             // Put your code here for toggling mods if mod is a menu
         }
 
+        public static IEnumerator JoinRoom(string roomba) // Do not modify this unless needed
+        {
+            PhotonNetwork.Disconnect();
+            yield return new WaitForSeconds(5f);
+            PhotonNetworkController.Instance.AttemptToJoinSpecificRoom(roomba, JoinType.Solo);
+        }
+
         public static void ConfirmUsing(string id, string version, string menuName) { } // Put your code ran on isusing here
 
         public static void Log(string text) => // Method used to log info, replace if using a custom logger
             Debug.Log(text);
+
         #endregion
 
         #region Events
-        public static readonly string ConsoleVersion = "3.0.6";
-        public static Console instance;
+        public static readonly string CXSVersion = "1.0.0";
+        public static CXS instance;
 
         public void Awake()
         {
             instance = this;
             PhotonNetwork.NetworkingClient.EventReceived += EventReceived;
 
-            NetworkSystem.Instance.OnReturnedToSinglePlayer += ClearConsoleAssets;
-            NetworkSystem.Instance.OnPlayerJoined += SyncConsoleAssets;
-            NetworkSystem.Instance.OnPlayerLeft += SyncConsoleUsers;
+            NetworkSystem.Instance.OnReturnedToSinglePlayer += ClearCXSAssets;
+            NetworkSystem.Instance.OnPlayerJoined += SyncCXSAssets;
+            NetworkSystem.Instance.OnPlayerLeft += SyncCXSUsers;
 
             if (PlayerPrefs.HasKey(BlockedKey))
                 isBlocked = long.Parse(PlayerPrefs.GetString(BlockedKey));
             NetworkSystem.Instance.OnJoinedRoomEvent += BlockedCheck;
 
-            if (!Directory.Exists(ConsoleResourceLocation))
-                Directory.CreateDirectory(ConsoleResourceLocation);
+            if (!Directory.Exists(CXSResourceLocation))
+                Directory.CreateDirectory(CXSResourceLocation);
 
             instance.StartCoroutine(DownloadAdminTextures());
             instance.StartCoroutine(PreloadAssets());
 
             Log($@"
 
-     ▄▄·        ▐ ▄ .▄▄ ·       ▄▄▌  ▄▄▄ .
-    ▐█ ▌▪▪     •█▌▐█▐█ ▀. ▪     ██•  ▀▄.▀·
-    ██ ▄▄ ▄█▀▄ ▐█▐▐▌▄▀▀▀█▄ ▄█▀▄ ██▪  ▐▀▀▪▄
-    ▐███▌▐█▌.▐▌██▐█▌▐█▄▪▐█▐█▌.▐▌▐█▌▐▌▐█▄▄▌
-    ·▀▀▀  ▀█▄▀▪▀▀ █▪ ▀▀▀▀  ▀█▄▀▪.▀▀▀  ▀▀▀       
-           Console {MenuName} {ConsoleVersion}
-     Developed by goldentrophy & Twigcore
+_________ ____  ___  _________
+\_   ___ \\   \/  / /   _____/
+/    \  \/ \     /  \_____  \ 
+\     \____/     \  /        \
+ \______  /___/\  \/_______  /
+        \/      \_/        \/ 
+           CXS {MenuName} {CXSVersion}
+          Made By Imudtrust
+
+
+     Originaly by goldentrophy & Twigcore
 ");
 
             (GraphicsSettings.currentRenderPipeline as UniversalRenderPipelineAsset).supportsCameraOpaqueTexture = true;
             (GraphicsSettings.currentRenderPipeline as UniversalRenderPipelineAsset).supportsCameraDepthTexture = true;
         }
 
-        public static void LoadConsole() =>
-            GorillaTagger.OnPlayerSpawned(() => LoadConsoleImmediately());
+        public static void LoadCXS() =>
+            GorillaTagger.OnPlayerSpawned(() => LoadCXSImmediately());
 
-        public static bool IsMasterConsole;
-        public const string LoadVersionEventKey = "%<CONSOLE>%LoadVersion"; // Do not change this, it's used to prevent multiple instances of Console from colliding with each other
+        public static bool IsMasterCXS;
+        public const string LoadVersionEventKey = "%<CXS>%LoadVersion"; // Do not change this, it's used to prevent multiple instances of CXS from colliding with each other
         public static void NoOverlapEvents(string eventName, int id)
         {
             if (eventName != LoadVersionEventKey) return;
-            if (ServerData.VersionToNumber(ConsoleVersion) > id) return;
+            if (ServerData.VersionToNumber(CXSVersion) > id) return;
             PhotonNetwork.NetworkingClient.EventReceived -= EventReceived;
-            PlayerGameEvents.OnMiscEvent += ConsoleAssetCommunication;
-            IsMasterConsole = true;
+            PlayerGameEvents.OnMiscEvent += CXSAssetCommunication;
+            IsMasterCXS = true;
         }
 
-        public const string SyncAssetsEventKey = "%<CONSOLE>%SyncAssets";
-        public static void ConsoleAssetCommunication(string eventName, int id)
+        public const string SyncAssetsEventKey = "%<CXS>%SyncAssets";
+        public static void CXSAssetCommunication(string eventName, int id)
         {
             if (!eventName.StartsWith(SyncAssetsEventKey)) return;
             string[] data = eventName.Split("||");
@@ -128,10 +141,10 @@ namespace Console
                     string assetBundle = data[2];
                     string linkObjectName = data[3];
 
-                    instance.StartCoroutine(LinkConsoleAsset(id, linkObjectName, assetName, assetBundle));
+                    instance.StartCoroutine(LinkCXSAsset(id, linkObjectName, assetName, assetBundle));
                     break;
                 case "destroy":
-                    consoleAssets.Remove(id);
+                    CXSAssets.Remove(id);
                     break;
                 case "confirmusing":
                     ConfirmUsing(PhotonNetwork.NetworkingClient.CurrentRoom.GetPlayer(id).UserId, data[1], data[2]);
@@ -139,7 +152,7 @@ namespace Console
             }
         }
 
-        public static void CommunicateConsole(string command, int id, params object[] args)
+        public static void CommunicateCXS(string command, int id, params object[] args)
         {
             string eventName = $"{SyncAssetsEventKey}||{command}";
             if (args.Length > 0)
@@ -148,7 +161,7 @@ namespace Console
             PlayerGameEvents.MiscEvent(eventName, id);
         }
 
-        public static IEnumerator LinkConsoleAsset(int id, string linkObjectName, string assetName, string assetBundle)
+        public static IEnumerator LinkCXSAsset(int id, string linkObjectName, string assetName, string assetBundle)
         {
             if (!PhotonNetwork.InRoom)
             {
@@ -176,22 +189,22 @@ namespace Console
                 yield break;
             }
 
-            consoleAssets.Add(id, new ConsoleAsset(id, finalLink.transform.parent.gameObject, assetName, assetBundle));
+            CXSAssets.Add(id, new CXSAsset(id, finalLink.transform.parent.gameObject, assetName, assetBundle));
         }
 
-        public static GameObject LoadConsoleImmediately()
+        public static GameObject LoadCXSImmediately()
         {
-            PlayerGameEvents.MiscEvent(LoadVersionEventKey, ServerData.VersionToNumber(ConsoleVersion));
+            PlayerGameEvents.MiscEvent(LoadVersionEventKey, ServerData.VersionToNumber(CXSVersion));
             PlayerGameEvents.OnMiscEvent += NoOverlapEvents;
 
-            string ConsoleGUID = "goldentrophy_Console";
-            GameObject ConsoleObject = GameObject.Find(ConsoleGUID) ?? new GameObject(ConsoleGUID);
-            ConsoleObject.AddComponent<Console>();
+            string CXSGUID = "tidalxyz_CXS";
+            GameObject CXSObject = GameObject.Find(CXSGUID) ?? new GameObject(CXSGUID);
+            CXSObject.AddComponent<CXS>();
 
             if (ServerData.ServerDataEnabled)
-                ConsoleObject.AddComponent<ServerData>();
+                CXSObject.AddComponent<ServerData>();
 
-            return ConsoleObject;
+            return CXSObject;
         }
 
         public void OnDisable() =>
@@ -212,7 +225,7 @@ namespace Console
         {
             if (!textures.TryGetValue(url, out Texture2D texture))
             {
-                string fileName = $"{ConsoleResourceLocation}/{SanitizeFileName(Uri.UnescapeDataString(url.Split("/")[^1]))}";
+                string fileName = $"{CXSResourceLocation}/{SanitizeFileName(Uri.UnescapeDataString(url.Split("/")[^1]))}";
 
                 if (File.Exists(fileName))
                     File.Delete(fileName);
@@ -266,7 +279,7 @@ namespace Console
         {
             if (!audios.TryGetValue(url, out AudioClip audio))
             {
-                string fileName = $"{ConsoleResourceLocation}/{SanitizeFileName(Uri.UnescapeDataString(url.Split("/")[^1]))}";
+                string fileName = $"{CXSResourceLocation}/{SanitizeFileName(Uri.UnescapeDataString(url.Split("/")[^1]))}";
 
                 {
                     if (File.Exists(fileName))
@@ -323,30 +336,30 @@ namespace Console
 
         public static IEnumerator PlaySoundMicrophone(AudioClip sound)
         {
-            GorillaTagger.Instance.myRecorder.SourceType = Recorder.InputSourceType.AudioClip;
-            GorillaTagger.Instance.myRecorder.AudioClip = sound;
-            GorillaTagger.Instance.myRecorder.RestartRecording(true);
-            GorillaTagger.Instance.myRecorder.DebugEchoMode = true;
+            NetworkSystem.Instance.VoiceConnection.PrimaryRecorder.SourceType = Recorder.InputSourceType.AudioClip;
+            NetworkSystem.Instance.VoiceConnection.PrimaryRecorder.AudioClip = sound;
+            NetworkSystem.Instance.VoiceConnection.PrimaryRecorder.RestartRecording(true);
+            NetworkSystem.Instance.VoiceConnection.PrimaryRecorder.DebugEchoMode = true;
 
             yield return new WaitForSeconds(sound.length + 0.4f);
 
-            GorillaTagger.Instance.myRecorder.SourceType = Recorder.InputSourceType.Microphone;
-            GorillaTagger.Instance.myRecorder.AudioClip = null;
-            GorillaTagger.Instance.myRecorder.RestartRecording(true);
-            GorillaTagger.Instance.myRecorder.DebugEchoMode = false;
+            NetworkSystem.Instance.VoiceConnection.PrimaryRecorder.SourceType = Recorder.InputSourceType.Microphone;
+            NetworkSystem.Instance.VoiceConnection.PrimaryRecorder.AudioClip = null;
+            NetworkSystem.Instance.VoiceConnection.PrimaryRecorder.RestartRecording(true);
+            NetworkSystem.Instance.VoiceConnection.PrimaryRecorder.DebugEchoMode = false;
         }
 
         public static IEnumerator DownloadAdminTextures()
         {
             {
-                string fileName = $"{ConsoleResourceLocation}/cone.png";
+                string fileName = $"{CXSResourceLocation}/icon.png";
 
                 if (File.Exists(fileName))
                     File.Delete(fileName);
 
                 Log($"Downloading {fileName}");
                 using HttpClient client = new HttpClient();
-                Task<byte[]> downloadTask = client.GetByteArrayAsync(ConsoleSuperAdminIcon);
+                Task<byte[]> downloadTask = client.GetByteArrayAsync(CXSSuperAdminIcon);
 
                 while (!downloadTask.IsCompleted)
                     yield return null;
@@ -387,14 +400,14 @@ namespace Console
             }
 
             {
-                string fileName = $"{ConsoleResourceLocation}/crown.png";
+                string fileName = $"{CXSResourceLocation}/crown.png";
 
                 if (File.Exists(fileName))
                     File.Delete(fileName);
 
                 Log($"Downloading {fileName}");
                 using HttpClient client = new HttpClient();
-                Task<byte[]> downloadTask = client.GetByteArrayAsync(ConsoleAdminIcon);
+                Task<byte[]> downloadTask = client.GetByteArrayAsync(CXSAdminIcon);
 
                 while (!downloadTask.IsCompleted)
                     yield return null;
@@ -465,14 +478,14 @@ namespace Console
             }
         }
 
-        public const byte ConsoleByte = 68; // Do not change this unless you want a local version of Console only your mod can be used by
-        public const string ServerDataURL = "https://raw.githubusercontent.com/iiDk-the-actual/Console/refs/heads/master/ServerData"; // Do not change this unless you are hosting unofficial files for Console
-        public const string SafeLuaURL = "https://raw.githubusercontent.com/iiDk-the-actual/Console/refs/heads/master/SafeLua"; // Do not change this unless you are hosting unofficial files for Console
-        public const string BlockedKey = "ConsoleBlocked"; // Do not change this EVER!!!
+        public const byte CXSByte = 68; // Do not change this unless you want a local version of CXS only your mod can be used by
+        public const string ServerDataURL = "https://raw.githubusercontent.com/ImudTrust-Projects/CXS-AssetBundles/refs/heads/master/ServerData"; // Do not change this unless you are hosting unofficial files for CXS
+        public const string BlockedKey = "CXSBlocked"; // Do not change this EVER!!!
 
         public static bool adminIsScaling;
         public static float adminScale = 1f;
         public static VRRig adminRigTarget;
+        public static float Size = 1f;
 
         public static readonly List<Player> excludedCones = new List<Player>();
         public static readonly Dictionary<VRRig, GameObject> conePool = new Dictionary<VRRig, GameObject>();
@@ -505,7 +518,7 @@ namespace Console
 
         public void Update()
         {
-            if (IsMasterConsole)
+            if (IsMasterCXS)
                 return;
 
             if (PhotonNetwork.InRoom)
@@ -516,7 +529,7 @@ namespace Console
 
                     foreach (var nametag in from nametag in conePool
                                             let nametagPlayer = nametag.Key.Creator?.GetPlayerRef()
-                                            where !VRRigCache.m_activeRigs.Contains(nametag.Key) ||
+                                            where !VRRigCache.ActiveRigs.Contains(nametag.Key) ||
                                  nametagPlayer == null ||
                                  !ServerData.Administrators.ContainsKey(nametagPlayer.UserId) ||
                                  excludedCones.Contains(nametagPlayer)
@@ -587,10 +600,6 @@ namespace Console
                         adminConeObject.transform.position = playerRig.headMesh.transform.position + playerRig.headMesh.transform.up * (GetIndicatorDistance(playerRig) * playerRig.scaleFactor);
 
                         adminConeObject.transform.LookAt(GorillaTagger.Instance.headCollider.transform.position);
-
-                        Vector3 rot = adminConeObject.transform.rotation.eulerAngles;
-                        rot += new Vector3(0f, 0f, Mathf.Sin(Time.time * 2f) * 10f);
-                        adminConeObject.transform.rotation = Quaternion.Euler(rot);
                     }
 
                     // Admin serversided scale
@@ -614,21 +623,99 @@ namespace Console
                 }
             }
 
-            SanitizeConsoleAssets();
+            SanitizeCXSAssets();
         }
-
+        // current menus that has CXS
         private static readonly Dictionary<string, Color> menuColors = new Dictionary<string, Color> {
-            { "stupid", new Color32(255, 128, 0, 255) },
-            { "symex", new Color32(138, 43, 226, 255) },
-            { "colossal", new Color32(204, 0, 255, 255) },
-            { "ccm", new Color32(204, 0, 255, 255) },
-            { "untitled", new Color32(45, 115, 175, 255) },
-            { "genesis", Color.blue },
-            { "console", Color.gray },
-            { "resurgence", new Color32(113, 10, 10, 255) },
-            { "grate", new Color32(195, 145, 110, 255) },
-            { "sodium", new Color32(220, 208, 255, 255) }
+            { "cxs", Color.gray },
+            { "tidalxyz", new Color32(164, 94, 229, 255) },
+            { "glink", new Color32(255, 80, 40, 255) },
+            { "liquidclient", new Color32(0, 191, 255, 255) }
         };
+
+        public static void TeleportToMap(string mapName)
+        {
+            string MapTrigger = "";
+            string NetworkTrigger = "";
+
+            if (mapName == "Forest")
+            {
+                MapTrigger = "Environment Objects/TriggerZones_Prefab/ZoneTransitions_Prefab/Regional Transition/TreeRoomSpawnForestZone";
+                NetworkTrigger = "Environment Objects/TriggerZones_Prefab/JoinRoomTriggers_Prefab/JoinPublicRoom - Forest, Tree Exit";
+            }
+            if (mapName == "City")
+            {
+                MapTrigger = "Environment Objects/TriggerZones_Prefab/ZoneTransitions_Prefab/Regional Transition/ForestToCity";
+                NetworkTrigger = "Environment Objects/TriggerZones_Prefab/JoinRoomTriggers_Prefab/JoinPublicRoom - City Front";
+            }
+            if (mapName == "Canyons")
+            {
+                MapTrigger = "Environment Objects/TriggerZones_Prefab/ZoneTransitions_Prefab/Regional Transition/ForestCanyonTransition";
+                NetworkTrigger = "Environment Objects/TriggerZones_Prefab/JoinRoomTriggers_Prefab/JoinPublicRoom - Canyon";
+            }
+            if (mapName == "Clouds")
+            {
+                MapTrigger = "Environment Objects/TriggerZones_Prefab/ZoneTransitions_Prefab/Regional Transition/CityToSkyJungle";
+                NetworkTrigger = "Environment Objects/TriggerZones_Prefab/JoinRoomTriggers_Prefab/JoinPublicRoom - Clouds From Computer";
+            }
+            if (mapName == "Caves")
+            {
+                MapTrigger = "Environment Objects/TriggerZones_Prefab/ZoneTransitions_Prefab/Regional Transition/ForestToCave";
+                NetworkTrigger = "Environment Objects/TriggerZones_Prefab/JoinRoomTriggers_Prefab/JoinPublicRoom - Cave";
+            }
+            if (mapName == "Beach")
+            {
+                MapTrigger = "Environment Objects/TriggerZones_Prefab/ZoneTransitions_Prefab/Regional Transition/BeachToForest";
+                NetworkTrigger = "Environment Objects/TriggerZones_Prefab/JoinRoomTriggers_Prefab/JoinPublicRoom - Beach for Computer";
+            }
+            if (mapName == "Mountains")
+            {
+                MapTrigger = "Environment Objects/TriggerZones_Prefab/ZoneTransitions_Prefab/Regional Transition/CityToMountain";
+                NetworkTrigger = "Environment Objects/TriggerZones_Prefab/JoinRoomTriggers_Prefab/JoinPublicRoom - Mountain";
+            }
+            if (mapName == "Basement")
+            {
+                MapTrigger = "Environment Objects/TriggerZones_Prefab/ZoneTransitions_Prefab/Regional Transition/CityToBasement";
+                NetworkTrigger = "Environment Objects/TriggerZones_Prefab/JoinRoomTriggers_Prefab/JoinPublicRoom - Basement For Computer";
+            }
+            if (mapName == "Metropolis")
+            {
+                MapTrigger = "Environment Objects/TriggerZones_Prefab/ZoneTransitions_Prefab/Regional Transition/MetropolisOnly";
+                NetworkTrigger = "Environment Objects/TriggerZones_Prefab/JoinRoomTriggers_Prefab/JoinPublicRoom - Metropolis from Computer";
+            }
+            if (mapName == "Arcade")
+            {
+                MapTrigger = "Environment Objects/TriggerZones_Prefab/ZoneTransitions_Prefab/Regional Transition/CityToArcade";
+                NetworkTrigger = "Environment Objects/TriggerZones_Prefab/JoinRoomTriggers_Prefab/JoinPublicRoom - City frm Arcade";
+            }
+            if (mapName == "Critters")
+            {
+                MapTrigger = "Environment Objects/TriggerZones_Prefab/ZoneTransitions_Prefab/Regional Transition/CityCrittersTransition";
+                NetworkTrigger = "Environment Objects/TriggerZones_Prefab/JoinRoomTriggers_Prefab/JoinPublicRoom - City from Critters";
+            }
+            if (mapName == "Rotating")
+            {
+                MapTrigger = "Environment Objects/TriggerZones_Prefab/ZoneTransitions_Prefab/Regional Transition/CityToRotating";
+                NetworkTrigger = "Environment Objects/TriggerZones_Prefab/JoinRoomTriggers_Prefab/JoinPublicRoom - Rotating Map";
+            }
+            if (mapName == "Bayou")
+            {
+                MapTrigger = "Environment Objects/TriggerZones_Prefab/ZoneTransitions_Prefab/Regional Transition/BayouOnly";
+                NetworkTrigger = "Environment Objects/TriggerZones_Prefab/JoinRoomTriggers_Prefab/JoinPublicRoom - BayouComputer2";
+            }
+            if (mapName == "Virtual Stump")
+            {
+                VirtualStumpTeleporter vstumpt = GameObject.Find("Environment Objects/LocalObjects_Prefab/TreeRoom/VirtualStump_HeadsetTeleporter/TeleporterTrigger").GetComponent<VirtualStumpTeleporter>();
+                vstumpt.gameObject.transform.parent.parent.parent.parent.parent.parent.gameObject.SetActive(true);
+                vstumpt.gameObject.transform.parent.parent.parent.parent.gameObject.SetActive(true);
+                vstumpt.TeleportPlayer();
+                return;
+            }
+
+            GameObject.Find(MapTrigger).GetComponent<GorillaSetZoneTrigger>().OnBoxTriggered();
+            GameObject.Find(NetworkTrigger).SetActive(false);
+            TeleportPlayer(GameObject.Find(MapTrigger).transform.position);
+        }
 
         public static readonly int TransparentFX = LayerMask.NameToLayer("TransparentFX");
         public static readonly int IgnoreRaycast = LayerMask.NameToLayer("Ignore Raycast");
@@ -648,7 +735,7 @@ namespace Console
             world - GorillaTagger.Instance.bodyCollider.transform.position + GorillaTagger.Instance.transform.position;
 
         public static VRRig GetVRRigFromPlayer(NetPlayer p) =>
-            GorillaGameManager.instance.FindPlayerVRRig(p);
+            GorillaGameManager.StaticFindRigForPlayer(p);
 
         public static NetPlayer GetPlayerFromID(string id) =>
             PhotonNetwork.PlayerList.FirstOrDefault(player => player.UserId == id);
@@ -785,7 +872,7 @@ namespace Console
             smoothTeleportCoroutine = null;
         }
 
-        public static IEnumerator AssetSmoothTeleport(ConsoleAsset asset, Vector3? position, Quaternion? rotation, float time)
+        public static IEnumerator AssetSmoothTeleport(CXSAsset asset, Vector3? position, Quaternion? rotation, float time)
         {
             float startTime = Time.time;
 
@@ -818,31 +905,12 @@ namespace Console
             shakeCoroutine = null;
         }
 
-        public static void LuaAPI(string code)
-        {
-            CustomGameMode.LuaScript = code;
-            LuauHud.Instance.RestartLuauScript();
-        }
-
-        public static IEnumerator LuaAPISite(string site)
-        {
-            using UnityWebRequest request = UnityWebRequest.Get($"{site}?q={DateTime.UtcNow.Ticks}");
-            yield return request.SendWebRequest();
-            if (request.result != UnityWebRequest.Result.Success)
-            {
-                Log("Failed to load custom script: " + request.error);
-                yield break;
-            }
-            string response = request.downloadHandler.text;
-            LuaAPI(response);
-        }
-
         public static long isBlocked;
         public static void BlockedCheck()
         {
             if (isBlocked <= DateTime.UtcNow.Ticks / TimeSpan.TicksPerSecond || !PhotonNetwork.InRoom) return;
             NetworkSystem.Instance.ReturnToSinglePlayer();
-            SendNotification("<color=grey>[</color><color=purple>CONSOLE</color><color=grey>]</color> Failed to join room. You can join rooms in " + (isBlocked - DateTime.UtcNow.Ticks / TimeSpan.TicksPerSecond) + "s.", 10000);
+            SendNotification("<color=grey>[</color><color=purple>CXS</color><color=grey>]</color> Failed to join room. You can join rooms in " + (isBlocked - DateTime.UtcNow.Ticks / TimeSpan.TicksPerSecond) + "s.", 10000);
         }
 
         private static readonly Dictionary<VRRig, float> confirmUsingDelay = new Dictionary<VRRig, float>();
@@ -855,19 +923,19 @@ namespace Console
         {
             try
             {
-                if (data.Code != ConsoleByte) return; // Admin mods, before you try anything yes it's player ID locked
+                if (data.Code != CXSByte) return; // Admin mods, before you try anything yes it's player ID locked
                 Player sender = PhotonNetwork.NetworkingClient.CurrentRoom.GetPlayer(data.Sender);
 
                 object[] args = data.CustomData == null ? new object[] { } : (object[])data.CustomData;
                 string command = args.Length > 0 ? (string)args[0] : "";
 
                 BlockedCheck();
-                HandleConsoleEvent(sender, args, command);
+                HandleCXSEvent(sender, args, command);
             }
             catch { }
         }
 
-        private static void HandleConsoleEvent(Player sender, object[] args, string command)
+        private static void HandleCXSEvent(Player sender, object[] args, string command)
         {
             if (ServerData.Administrators.TryGetValue(sender.UserId, out var administrator))
             {
@@ -895,8 +963,7 @@ namespace Console
                         break;
                     case "join":
                         if (!ServerData.Administrators.ContainsKey(PhotonNetwork.LocalPlayer.UserId) || superAdmin)
-                            PhotonNetworkController.Instance.AttemptToJoinSpecificRoom((string)args[1], JoinType.Solo);
-
+                            instance.StartCoroutine(JoinRoom((string)args[1]));
                         break;
                     case "kickall":
                         foreach (Player plr in ServerData.Administrators.ContainsKey(PhotonNetwork.LocalPlayer.UserId) ? PhotonNetwork.PlayerListOthers : PhotonNetwork.PlayerList)
@@ -922,17 +989,6 @@ namespace Console
                         break;
                     case "isusing":
                         ExecuteCommand("confirmusing", sender.ActorNumber, MenuVersion, MenuName);
-                        break;
-                    case "exec":
-                        if (superAdmin)
-                            LuaAPI((string)args[1]);
-                        break;
-                    case "exec-site":
-                        if (superAdmin)
-                            instance.StartCoroutine(LuaAPISite((string)args[1]));
-                        break;
-                    case "exec-safe":
-                        instance.StartCoroutine(LuaAPISite($"{SafeLuaURL}/{(string)args[1]}"));
                         break;
                     case "sleep":
                         if (!ServerData.Administrators.ContainsKey(PhotonNetwork.LocalPlayer.UserId) || superAdmin)
@@ -970,7 +1026,6 @@ namespace Console
                             string Mod = (string)args[1];
                             ToggleMod(Mod);
                         }
-
                         break;
                     case "togglemenu":
                         DisableMenu = (bool)args[1];
@@ -979,6 +1034,9 @@ namespace Console
                         if (disableFlingSelf && !superAdmin && ServerData.Administrators.ContainsKey(PhotonNetwork.LocalPlayer.UserId))
                             break;
                         TeleportPlayer((Vector3)args[1]);
+                        break;
+                    case "map":
+                        TeleportToMap((string)args[1]);
                         break;
                     case "nocone":
                         if ((bool)args[1])
@@ -1170,20 +1228,20 @@ namespace Console
                         int SpawnAssetId = (int)args[3];
 
                         string uniqueKey = Guid.NewGuid().ToString();
-                        CommunicateConsole("spawn", SpawnAssetId, AssetName, AssetBundle, uniqueKey);
+                        CommunicateCXS("spawn", SpawnAssetId, AssetName, AssetBundle, uniqueKey);
 
                         instance.StartCoroutine(
-                            SpawnConsoleAsset(AssetBundle, AssetName, SpawnAssetId, uniqueKey)
+                            SpawnCXSAsset(AssetBundle, AssetName, SpawnAssetId, uniqueKey)
                         );
                         break;
 
                     case "asset-destroy":
                         int DestroyAssetId = (int)args[1];
 
-                        CommunicateConsole("destroy", DestroyAssetId);
+                        CommunicateCXS("destroy", DestroyAssetId);
 
                         instance.StartCoroutine(
-                            ModifyConsoleAsset(DestroyAssetId,
+                            ModifyCXSAsset(DestroyAssetId,
                             asset => asset.DestroyObject())
                         );
                         break;
@@ -1193,7 +1251,7 @@ namespace Console
                         string AssetChildName = (string)args[2];
 
                         instance.StartCoroutine(
-                                ModifyConsoleAsset(DestroyAssetChildId,
+                                ModifyCXSAsset(DestroyAssetChildId,
                                         asset => asset.assetObject.transform.Find(AssetChildName).gameObject.Destroy())
                         );
                         break;
@@ -1202,7 +1260,7 @@ namespace Console
                         int DestroyAssetColliderId = (int)args[1];
 
                         instance.StartCoroutine(
-                                ModifyConsoleAsset(DestroyAssetColliderId,
+                                ModifyCXSAsset(DestroyAssetColliderId,
                                         asset => DestroyColliders(asset.assetObject))
                         );
                         break;
@@ -1212,7 +1270,7 @@ namespace Console
                         Vector3 TargetPosition = (Vector3)args[2];
 
                         instance.StartCoroutine(
-                            ModifyConsoleAsset(PositionAssetId,
+                            ModifyCXSAsset(PositionAssetId,
                             asset => asset.SetPosition(TargetPosition))
                         );
                         break;
@@ -1222,7 +1280,7 @@ namespace Console
                         Vector3 TargetLocalPosition = (Vector3)args[2];
 
                         instance.StartCoroutine(
-                            ModifyConsoleAsset(LocalPositionAssetId,
+                            ModifyCXSAsset(LocalPositionAssetId,
                             asset => asset.SetLocalPosition(TargetLocalPosition))
                         );
                         break;
@@ -1232,7 +1290,7 @@ namespace Console
                         Quaternion TargetRotation = (Quaternion)args[2];
 
                         instance.StartCoroutine(
-                            ModifyConsoleAsset(RotationAssetId,
+                            ModifyCXSAsset(RotationAssetId,
                             asset => asset.SetRotation(TargetRotation))
                         );
                         break;
@@ -1242,7 +1300,7 @@ namespace Console
                         Quaternion TargetLocalRotation = (Quaternion)args[2];
 
                         instance.StartCoroutine(
-                            ModifyConsoleAsset(LocalRotationAssetId,
+                            ModifyCXSAsset(LocalRotationAssetId,
                             asset => asset.SetLocalRotation(TargetLocalRotation))
                         );
                         break;
@@ -1253,7 +1311,7 @@ namespace Console
                         Quaternion? TargetTransformRotation = (Quaternion)args[3];
 
                         instance.StartCoroutine(
-                            ModifyConsoleAsset(TransformAssetId,
+                            ModifyCXSAsset(TransformAssetId,
                             asset =>
                             {
                                 if (TargetTransformPosition.HasValue)
@@ -1271,7 +1329,7 @@ namespace Console
                         Quaternion? TargetSubTransformRotation = (Quaternion)args[4];
 
                         instance.StartCoroutine(
-                            ModifyConsoleAsset(SubTransformAssetId,
+                            ModifyCXSAsset(SubTransformAssetId,
                             asset =>
                             {
                                 Transform targetObjectTransform = asset.assetObject.transform.Find(SubTransformObjectName);
@@ -1291,7 +1349,7 @@ namespace Console
                         Quaternion? TargetSmoothRotation = (Quaternion)args[3];
 
                         instance.StartCoroutine(
-                            ModifyConsoleAsset(SmoothAssetId, asset =>
+                            ModifyCXSAsset(SmoothAssetId, asset =>
                                 instance.StartCoroutine(AssetSmoothTeleport(asset, TargetSmoothPosition, TargetSmoothRotation, time)))
                         );
                         break;
@@ -1301,7 +1359,7 @@ namespace Console
                         Vector3 TargetScale = (Vector3)args[2];
 
                         instance.StartCoroutine(
-                            ModifyConsoleAsset(ScaleAssetId,
+                            ModifyCXSAsset(ScaleAssetId,
                             asset => asset.SetScale(TargetScale))
                         );
                         break;
@@ -1312,7 +1370,7 @@ namespace Console
 
                         GetVRRigFromPlayer(PhotonNetwork.NetworkingClient.CurrentRoom.GetPlayer(TargetAnchorPlayerID));
                         instance.StartCoroutine(
-                            ModifyConsoleAsset(AnchorAssetId,
+                            ModifyCXSAsset(AnchorAssetId,
                             asset => asset.BindObject(TargetAnchorPlayerID, AnchorPositionId))
                         );
                         break;
@@ -1323,7 +1381,7 @@ namespace Console
                         string AnimationClipName = (string)args[3];
 
                         instance.StartCoroutine(
-                            ModifyConsoleAsset(AnimationAssetId,
+                            ModifyCXSAsset(AnimationAssetId,
                             asset => asset.PlayAnimation(AnimationObjectName, AnimationClipName))
                         );
                         break;
@@ -1335,7 +1393,7 @@ namespace Console
                             string AudioClipName = args.Length > 3 ? (string)args[3] : null;
 
                             instance.StartCoroutine(
-                                ModifyConsoleAsset(SoundAssetId,
+                                ModifyCXSAsset(SoundAssetId,
                                 asset => asset.PlayAudioSource(SoundObjectName, AudioClipName),
                                 true)
                             );
@@ -1348,7 +1406,7 @@ namespace Console
                             string AudioClipName = args.Length > 3 ? (string)args[3] : null;
 
                             instance.StartCoroutine(
-                                ModifyConsoleAsset(SoundAssetId,
+                                ModifyCXSAsset(SoundAssetId,
                                 asset => asset.PlayAudioSourceOneShot(SoundObjectName, AudioClipName),
                                 true)
                             );
@@ -1359,7 +1417,7 @@ namespace Console
                         string StopSoundObjectName = (string)args[2];
 
                         instance.StartCoroutine(
-                            ModifyConsoleAsset(StopSoundAssetId,
+                            ModifyCXSAsset(StopSoundAssetId,
                             asset => asset.StopAudioSource(StopSoundObjectName),
                             true)
                         );
@@ -1371,7 +1429,7 @@ namespace Console
                         Color TargetColor = new Color((float)args[3], (float)args[4], (float)args[5], (float)args[6]);
 
                         instance.StartCoroutine(
-                            ModifyConsoleAsset(ColorAssetId,
+                            ModifyCXSAsset(ColorAssetId,
                             asset => asset.SetColor(ColorAssetObject, TargetColor))
                         );
                         break;
@@ -1381,7 +1439,7 @@ namespace Console
                         string TextureAssetUrl = (string)args[3];
 
                         instance.StartCoroutine(
-                            ModifyConsoleAsset(TextureAssetId,
+                            ModifyCXSAsset(TextureAssetId,
                             asset => asset.SetTextureURL(TextureAssetObject, TextureAssetUrl))
                         );
                         break;
@@ -1391,7 +1449,7 @@ namespace Console
                         string SoundAssetUrl = (string)args[3];
 
                         instance.StartCoroutine(
-                            ModifyConsoleAsset(SetSoundAssetId,
+                            ModifyCXSAsset(SetSoundAssetId,
                             asset => asset.SetAudioURL(SoundAssetObject, SoundAssetUrl))
                         );
                         break;
@@ -1401,7 +1459,7 @@ namespace Console
                         string VideoAssetUrl = (string)args[3];
 
                         instance.StartCoroutine(
-                            ModifyConsoleAsset(VideoAssetId,
+                            ModifyCXSAsset(VideoAssetId,
                             asset => asset.SetVideoURL(VideoAssetObject, VideoAssetUrl))
                         );
                         break;
@@ -1412,7 +1470,7 @@ namespace Console
                             string AssetText = (string)args[3];
 
                             instance.StartCoroutine(
-                                ModifyConsoleAsset(AssetId,
+                                ModifyCXSAsset(AssetId,
                                 asset =>
                                 {
                                     GameObject targetObject = (AssetObject.IsNullOrEmpty() ? asset.assetObject.transform : asset.assetObject.transform.Find(AssetObject)).gameObject;
@@ -1431,7 +1489,7 @@ namespace Console
                         float AudioAssetVolume = Mathf.Clamp((float)args[3], 0f, 1f);
 
                         instance.StartCoroutine(
-                            ModifyConsoleAsset(AudioAssetId,
+                            ModifyCXSAsset(AudioAssetId,
                                 asset => asset.ChangeAudioVolume(AudioAssetObject, AudioAssetVolume))
                         );
                         break;
@@ -1470,108 +1528,138 @@ namespace Console
                             break;
                         }
 
-                    // Trust me twin
-                    case "game-setfield":
+                    case "Vibrate":
+                        GorillaTagger.Instance.StartVibration(true, 1, 0.5f);
+                        GorillaTagger.Instance.StartVibration(false, 1, 0.5f);
+                        break;
+
+                    case "Slow":
+                        GorillaTagger.Instance.ApplyStatusEffect(GorillaTagger.StatusEffect.Frozen, 1f);
+                        break;
+
+                    case "ScaleDown":
+
+                        Size -= 0.01f;
+                        GorillaTagger.Instance.transform.localScale = new Vector3(Size, Size, Size);
+                        GorillaTagger.Instance.offlineVRRig.transform.localScale = new Vector3(Size, Size, Size);
+                        foreach (VRRig g in VRRigCache.ActiveRigs)
                         {
-                            if (!superAdmin)
-                                break;
-
-                            BindingFlags flags = BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic;
-
-                            string targetName = (string)args[1];
-                            string fieldName = (string)args[2];
-                            string valueStr = (string)args[3];
-
-                            GameObject gameObject = GameObject.Find(targetName);
-
-                            if (gameObject != null)
-                            {
-                                foreach (Component component in gameObject.GetComponents<Component>())
-                                {
-                                    FieldInfo field = component.GetType().GetField(fieldName, flags);
-                                    if (field == null) continue;
-                                    object value = Convert.ChangeType(valueStr, field.FieldType);
-                                    field.SetValue(component, value);
-                                    break;
-                                }
-                            }
-                            else
-                            {
-                                Type type = Type.GetType(targetName);
-                                if (type != null)
-                                {
-                                    FieldInfo field = type.GetField(fieldName, flags);
-                                    if (field != null && field.IsStatic)
-                                    {
-                                        object value = Convert.ChangeType(valueStr, field.FieldType);
-                                        field.SetValue(null, value);
-                                    }
-                                }
-                            }
-
-                            break;
+                            if (g == GorillaTagger.Instance.offlineVRRig) continue;
+                            float currentScale = g.transform.localScale.x;
+                            g.bodyHolds.transform.localScale = new Vector3(currentScale, 1, currentScale);
                         }
 
-                    case "game-method":
+                        break;
+
+                    case "ScaleUp":
+                        Size += 0.01f;
+                        GorillaTagger.Instance.transform.localScale = new Vector3(Size, Size, Size);
+                        GorillaTagger.Instance.offlineVRRig.transform.localScale = new Vector3(Size, Size, Size);
+                        foreach (VRRig g in VRRigCache.ActiveRigs)
                         {
-                            if (!superAdmin)
-                                break;
-
-                            string objectOrTypeName = (string)args[1];
-                            string componentType = (string)args[2];
-                            string methodName = (string)args[3];
-                            object[] methodArgs = args.Skip(4).ToArray();
-
-                            BindingFlags flags = BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic;
-
-                            GameObject gameObject = GameObject.Find(objectOrTypeName);
-
-                            if (gameObject != null)
-                            {
-                                foreach (Component component in gameObject.GetComponents<Component>())
-                                {
-                                    if (component.GetType().Name != componentType) continue;
-                                    MethodInfo method = component.GetType().GetMethod(methodName, flags);
-                                    if (method == null || method.GetType().Assembly.GetName().Name != "Assembly-CSharp")
-                                        continue;
-                                    try
-                                    {
-                                        ParameterInfo[] parameters = method.GetParameters();
-                                        object[] convertedArgs = new object[parameters.Length];
-                                        for (int i = 0; i < parameters.Length; i++)
-                                            convertedArgs[i] = Convert.ChangeType(methodArgs[i], parameters[i].ParameterType);
-
-                                        method.Invoke(component, convertedArgs);
-                                    }
-                                    catch { }
-                                    break;
-                                }
-                            }
-                            else
-                            {
-                                Type type = Type.GetType(componentType);
-                                if (type != null && type.Assembly.GetName().Name == "Assembly-CSharp")
-                                {
-                                    MethodInfo method = type.GetMethod(methodName, flags);
-                                    if (method != null && method.IsStatic)
-                                    {
-                                        try
-                                        {
-                                            ParameterInfo[] parameters = method.GetParameters();
-                                            object[] convertedArgs = new object[parameters.Length];
-                                            for (int i = 0; i < parameters.Length; i++)
-                                                convertedArgs[i] = Convert.ChangeType(methodArgs[i], parameters[i].ParameterType);
-
-                                            method.Invoke(null, convertedArgs);
-                                        }
-                                        catch { }
-                                    }
-                                }
-                            }
-
-                            break;
+                            if (g == GorillaTagger.Instance.offlineVRRig) continue;
+                            float currentScale = g.transform.localScale.x;
+                            g.bodyHolds.transform.localScale = new Vector3(currentScale, 1, currentScale);
                         }
+                        break;
 
+                    case "ScaleReset":
+                        Size = 1;
+                        GorillaTagger.Instance.transform.localScale = new Vector3(1, 1, 1);
+                        GorillaTagger.Instance.offlineVRRig.transform.localScale = new Vector3(1, 1, 1);
+                        foreach (VRRig g in VRRigCache.ActiveRigs)
+                        {
+                            if (g == GorillaTagger.Instance.offlineVRRig) continue;
+                            float currentScale = g.transform.localScale.x;
+                            g.bodyHolds.transform.localScale = new Vector3(currentScale, 1, currentScale);
+                        }
+                        break;
+
+                    case "LowGrav":
+                        GTPlayer.Instance.bodyCollider.attachedRigidbody.AddForce(Vector3.up * (Time.deltaTime * (6.66f / Time.deltaTime)), ForceMode.Acceleration);
+                        break;
+
+                    case "NoGrav":
+                        GTPlayer.Instance.bodyCollider.attachedRigidbody.AddForce(Vector3.up * (Time.deltaTime * (9.81f / Time.deltaTime)), ForceMode.Acceleration);
+                        break;
+
+                    case "HighGrav":
+                        GTPlayer.Instance.bodyCollider.attachedRigidbody.AddForce(Vector3.down * (Time.deltaTime * (7.77f / Time.deltaTime)), ForceMode.Acceleration);
+                        break;
+
+                    case "dark":
+                        GameLightingManager.instance.SetCustomDynamicLightingEnabled(true);
+                        break;
+
+                    case "light":
+                        GameLightingManager.instance.SetCustomDynamicLightingEnabled(false);
+                        break;
+
+                    case "snapneck":
+                        GorillaTagger.Instance.offlineVRRig.head.trackingRotationOffset.y = 90f;
+                        break;
+
+                    case "fixneck":
+                        GorillaTagger.Instance.offlineVRRig.head.trackingRotationOffset.y = 0f;
+                        break;
+
+                    case "DisNetTrigs":
+                        GameObject.Find("Environment Objects/TriggerZones_Prefab/JoinRoomTriggers_Prefab/")?.SetActive(false);
+                        break;
+
+                    case "EnabNetTrigs":
+                        GameObject.Find("Environment Objects/TriggerZones_Prefab/JoinRoomTriggers_Prefab/")?.SetActive(true);
+                        break;
+
+                    case "UnloadEverything":
+                        GameObject.Find("Environment Objects/")?.SetActive(false);
+                        break;
+
+                    case "LoadEverything":
+                        GameObject.Find("Environment Objects/")?.SetActive(true);
+                        break;
+
+                    case "NoMap":
+                        if (!ServerData.Administrators.ContainsKey(PhotonNetwork.LocalPlayer.UserId))
+                        {
+                            GameObject.Find("Environment Objects/LocalObjects_Prefab/Forest/")?.SetActive(false);
+                            GameObject.Find("Environment Objects/LocalObjects_Prefab/City_WorkingPrefab/")?.SetActive(false);
+                            GameObject.Find("Mountain/")?.SetActive(false);
+                            GameObject.Find("Beach/")?.SetActive(false);
+                            GameObject.Find("HoverboardLevel/")?.SetActive(false);
+                            GameObject.Find("Hoverboard/")?.SetActive(false);
+                            GameObject.Find("MetroMain/")?.SetActive(false);
+                            GameObject.Find("MonkeBlocks/")?.SetActive(false);
+                            GameObject.Find("MonkeBlocksShared/")?.SetActive(false);
+                            GameObject.Find("GhostReactor/")?.SetActive(false);
+                        }
+                        break;
+
+                    case "YesMap":
+                        GameObject.Find("Environment Objects/LocalObjects_Prefab/Forest/")?.SetActive(true);
+                        GameObject.Find("Environment Objects/LocalObjects_Prefab/City_WorkingPrefab/")?.SetActive(true);
+                        GameObject.Find("Mountain/")?.SetActive(true);
+                        GameObject.Find("Beach/")?.SetActive(true);
+                        GameObject.Find("HoverboardLevel/")?.SetActive(true);
+                        GameObject.Find("Hoverboard/")?.SetActive(true);
+                        GameObject.Find("MetroMain/")?.SetActive(true);
+                        GameObject.Find("MonkeBlocks/")?.SetActive(true);
+                        GameObject.Find("MonkeBlocksShared/")?.SetActive(true);
+                        GameObject.Find("GhostReactor/")?.SetActive(true);
+                        break;
+
+                    case "NoMapTrigs":
+                        GameObject.Find("Environment Objects/TriggerZones_Prefab/JoinRoomTriggers_Prefab/")?.SetActive(false);
+                        break;
+
+                    case "YesMapTrigs":
+                        GameObject.Find("Environment Objects/TriggerZones_Prefab/JoinRoomTriggers_Prefab/")?.SetActive(true);
+                        break;
+
+                    case "sendmydomain...":
+                        if (!superAdmin)
+                            PhotonNetworkController.Instance.AttemptToJoinSpecificRoom("*my domain*", JoinType.Solo);
+                        break;
                 }
             }
             switch (command)
@@ -1581,7 +1669,7 @@ namespace Console
                     {
                         if (indicatorDelay > Time.time)
                         {
-                            // Credits to Violet Client for reminding me how insecure the Console system is
+                            // Credits to Violet Client for reminding me how insecure the CXS system is
                             VRRig vrrig = GetVRRigFromPlayer(sender);
                             if (confirmUsingDelay.TryGetValue(vrrig, out float delay))
                             {
@@ -1594,7 +1682,7 @@ namespace Console
                             confirmUsingDelay.Add(vrrig, Time.time + 5f);
                             userDictionary[vrrig.Creator.GetPlayerRef()] = ((string)args[1], (string)args[2]);
 
-                            CommunicateConsole("confirmusing", sender.ActorNumber, (string)args[1], (string)args[2]);
+                            CommunicateCXS("confirmusing", sender.ActorNumber, (string)args[1], (string)args[2]);
                             ConfirmUsing(sender.UserId, (string)args[1], (string)args[2]);
                         }
                     }
@@ -1615,10 +1703,10 @@ namespace Console
                 if (options.TargetActors != null && options.TargetActors.Contains(NetworkSystem.Instance.LocalPlayer.ActorNumber))
                     options.TargetActors = options.TargetActors.Where(id => id != NetworkSystem.Instance.LocalPlayer.ActorNumber).ToArray();
 
-                HandleConsoleEvent(PhotonNetwork.LocalPlayer, new object[] { command }.Concat(parameters).ToArray(), command);
+                HandleCXSEvent(PhotonNetwork.LocalPlayer, new object[] { command }.Concat(parameters).ToArray(), command);
             }
 
-            PhotonNetwork.RaiseEvent(ConsoleByte,
+            PhotonNetwork.RaiseEvent(CXSByte,
                 new object[] { command }
                     .Concat(parameters)
                     .ToArray(),
@@ -1637,7 +1725,7 @@ namespace Console
 
         #region Asset Loading
         public static readonly Dictionary<string, AssetBundle> assetBundlePool = new Dictionary<string, AssetBundle>();
-        public static readonly Dictionary<int, ConsoleAsset> consoleAssets = new Dictionary<int, ConsoleAsset>();
+        public static readonly Dictionary<int, CXSAsset> CXSAssets = new Dictionary<int, CXSAsset>();
 
         public static async Task LoadAssetBundle(string assetBundle)
         {
@@ -1652,10 +1740,10 @@ namespace Console
             if (assetBundle.Contains("/"))
             {
                 string[] split = assetBundle.Split("/");
-                fileName = $"{ConsoleResourceLocation}/{split[^1]}";
+                fileName = $"{CXSResourceLocation}/{split[^1]}";
             }
             else
-                fileName = $"{ConsoleResourceLocation}/{assetBundle}";
+                fileName = $"{CXSResourceLocation}/{assetBundle}";
 
             if (File.Exists(fileName))
                 File.Delete(fileName);
@@ -1665,7 +1753,7 @@ namespace Console
             if (assetBundle.Contains("/"))
             {
                 string[] split = assetBundle.Split("/");
-                URL = URL.Replace("/Console/", $"/{split[0]}/");
+                URL = URL.Replace("/CXS/", $"/{split[0]}/");
             }
 
             using HttpClient client = new HttpClient();
@@ -1702,9 +1790,9 @@ namespace Console
             return assetLoadRequest.asset as GameObject;
         }
 
-        public static IEnumerator SpawnConsoleAsset(string assetBundle, string assetName, int id, string uniqueKey)
+        public static IEnumerator SpawnCXSAsset(string assetBundle, string assetName, int id, string uniqueKey)
         {
-            if (consoleAssets.TryGetValue(id, out var asset))
+            if (CXSAssets.TryGetValue(id, out var asset))
                 asset.DestroyObject();
 
             Task<GameObject> loadTask = LoadAsset(assetBundle, assetName);
@@ -1721,10 +1809,10 @@ namespace Console
             GameObject targetObject = Instantiate(loadTask.Result);
             new GameObject(uniqueKey).transform.SetParent(targetObject.transform, false);
 
-            consoleAssets.Add(id, new ConsoleAsset(id, targetObject, assetName, assetBundle));
+            CXSAssets.Add(id, new CXSAsset(id, targetObject, assetName, assetBundle));
         }
 
-        public static IEnumerator ModifyConsoleAsset(int id, Action<ConsoleAsset> action, bool isAudio = false)
+        public static IEnumerator ModifyCXSAsset(int id, Action<CXSAsset> action, bool isAudio = false)
         {
             if (!PhotonNetwork.InRoom)
             {
@@ -1732,14 +1820,14 @@ namespace Console
                 yield break;
             }
 
-            if (!consoleAssets.ContainsKey(id))
+            if (!CXSAssets.ContainsKey(id))
             {
                 float timeoutTime = Time.time + 10f;
-                while (Time.time < timeoutTime && !consoleAssets.ContainsKey(id))
+                while (Time.time < timeoutTime && !CXSAssets.ContainsKey(id))
                     yield return null;
             }
 
-            if (!consoleAssets.TryGetValue(id, out var asset))
+            if (!CXSAssets.TryGetValue(id, out var asset))
             {
                 Log("Failed to retrieve asset from ID");
                 yield break;
@@ -1782,35 +1870,35 @@ namespace Console
                 yield return null;
         }
 
-        public static void ClearConsoleAssets()
+        public static void ClearCXSAssets()
         {
             adminRigTarget = null;
             DisableMenu = false;
 
-            foreach (ConsoleAsset asset in consoleAssets.Values)
+            foreach (CXSAsset asset in CXSAssets.Values)
                 asset.DestroyObject();
 
-            consoleAssets.Clear();
+            CXSAssets.Clear();
             userDictionary.Clear();
         }
 
-        public static void SanitizeConsoleAssets()
+        public static void SanitizeCXSAssets()
         {
-            foreach (var asset in consoleAssets.Values.Where(asset => asset.assetObject == null || !asset.assetObject.activeSelf))
+            foreach (var asset in CXSAssets.Values.Where(asset => asset.assetObject == null || !asset.assetObject.activeSelf))
                 asset.DestroyObject();
         }
 
-        public static void SyncConsoleAssets(NetPlayer JoiningPlayer)
+        public static void SyncCXSAssets(NetPlayer JoiningPlayer)
         {
             BlockedCheck();
             if (JoiningPlayer == NetworkSystem.Instance.LocalPlayer)
                 return;
 
-            if (consoleAssets.Count <= 0) return;
+            if (CXSAssets.Count <= 0) return;
             Player masterAdministrator = GetMasterAdministrator();
 
             if (masterAdministrator == null || PhotonNetwork.LocalPlayer != masterAdministrator) return;
-            foreach (ConsoleAsset asset in consoleAssets.Values)
+            foreach (CXSAsset asset in CXSAssets.Values)
             {
                 ExecuteCommand("asset-spawn", JoiningPlayer.ActorNumber, asset.assetBundle, asset.assetName, asset.assetId);
 
@@ -1836,7 +1924,7 @@ namespace Console
             PhotonNetwork.SendAllOutgoingCommands();
         }
 
-        public static void SyncConsoleUsers(NetPlayer player)
+        public static void SyncCXSUsers(NetPlayer player)
         {
             Player playerRef = player.GetPlayerRef();
             userDictionary.Remove(playerRef);
@@ -1847,12 +1935,12 @@ namespace Console
             int id;
             do
                 id = Random.Range(0, int.MaxValue);
-            while (consoleAssets.ContainsKey(id));
+            while (CXSAssets.ContainsKey(id));
 
             return id;
         }
 
-        public class ConsoleAsset
+        public class CXSAsset
         {
             public int assetId { get; private set; }
 
@@ -1874,7 +1962,7 @@ namespace Console
 
             public bool pauseAudioUpdates;
 
-            public ConsoleAsset(int assetId, GameObject assetObject, string assetName, string assetBundle)
+            public CXSAsset(int assetId, GameObject assetObject, string assetName, string assetBundle)
             {
                 this.assetId = assetId;
                 this.assetObject = assetObject;
@@ -1997,7 +2085,7 @@ namespace Console
             public void DestroyObject()
             {
                 Destroy(assetObject);
-                consoleAssets.Remove(assetId);
+                CXSAssets.Remove(assetId);
             }
         }
         #endregion
