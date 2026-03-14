@@ -6,8 +6,9 @@ A mod for Gorilla Tag that simulates playing on VR while on PC
 > Originally written by [KyleTheScientist](https://github.com/KyleTheScientist)  
 > Compiled DLL given to me by [hamsterman](https://guns.lol/hamstermanrexon)  
 > Original fix created by [DrPerky](https://github.com/DrPerkyLegit)
+> 
 > Fixed by [Cdev](https://github.com/Cdev-git)
-
+> 
 > Also Fixed by [imudtrust](https://github.com/ImudTrust)
 
 <img src=https://i.imgur.com/12qNbCt.png width="500px" alt="Photo of UI">
